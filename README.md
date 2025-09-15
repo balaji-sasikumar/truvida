@@ -1,97 +1,188 @@
-This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
+# TruVida - Wellness Tracking App 🌿
 
-# Getting Started
+A comprehensive React Native wellness application that helps users track their daily water intake, steps, and maintain healthy habits. Built with modern React Native architecture and beautiful UI design.
 
-> **Note**: Make sure you have completed the [Set Up Your Environment](https://reactnative.dev/docs/set-up-your-environment) guide before proceeding.
+## Features ✨
 
-## Step 1: Start Metro
+### 🎨 **Beautiful Splash Screen**
+- Inspiring wellness theme with soothing colors
+- Water ripple animations and gradient backgrounds
+- Auto-navigation to appropriate screen based on user state
 
-First, you will need to run **Metro**, the JavaScript build tool for React Native.
+### 🔐 **Authentication System**
+- **Login Screen**: Secure username/password authentication
+- **Register Screen**: Complete profile setup including:
+  - Personal information (name, age, height, weight)
+  - Username and password creation
+  - Input validation and error handling
+  - Secure local storage of user credentials
 
-To start the Metro dev server, run the following command from the root of your React Native project:
+### 🏠 **Home Dashboard**
+- Personalized greeting based on time of day
+- Real-time progress tracking for water and steps
+- Beautiful progress cards with visual indicators
+- Quick action buttons for common tasks
+- Motivational quotes to inspire healthy living
 
-```sh
-# Using npm
+### 💧 **Water Tracking**
+- Customizable daily water intake goals
+- Multiple glass size options (150ml, 250ml, 350ml, 500ml)
+- Visual progress tracking with percentage completion
+- Quick add/remove water functionality
+- Hydration tips and reminders
+- Goal achievement celebrations
+
+### 👟 **Steps Tracking**
+- Daily step counting and goal tracking
+- Activity level indicators (Light, Moderate, Active, Very Active)
+- Distance and calorie calculations
+- Progress visualization with bars and percentages
+- Walking tips and motivation
+- Simulated step counting for demo purposes
+
+### 👤 **Profile & Settings**
+- Comprehensive profile management
+- Editable personal information and goals
+- Notification preferences
+- Water reminder interval settings
+- Data management options
+- Secure data storage
+
+### 💾 **Local Storage**
+- All data stored securely using AsyncStorage
+- User profiles, daily progress, and preferences
+- Offline functionality
+- Data persistence across app sessions
+
+## Tech Stack 🛠️
+
+- **React Native 0.81.1** - Cross-platform mobile development
+- **TypeScript** - Type-safe development
+- **React Navigation 6** - Navigation and routing
+- **AsyncStorage** - Local data persistence
+- **React Native Linear Gradient** - Beautiful gradient backgrounds
+- **React Native Gesture Handler** - Smooth gesture interactions
+- **React Native Screens** - Optimized screen management
+- **React Native Reanimated** - Smooth animations
+
+## Getting Started 🚀
+
+### Prerequisites
+
+Make sure you have completed the [React Native - Environment Setup](https://reactnative.dev/docs/environment-setup) instructions.
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd truvida
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Install iOS dependencies** (iOS only)
+   ```bash
+   cd ios && pod install && cd ..
+   ```
+
+### Running the App
+
+#### Start Metro Bundler
+```bash
 npm start
-
-# OR using Yarn
-yarn start
 ```
 
-## Step 2: Build and run your app
-
-With Metro running, open a new terminal window/pane from the root of your React Native project, and use one of the following commands to build and run your Android or iOS app:
-
-### Android
-
-```sh
-# Using npm
+#### Run on Android
+```bash
 npm run android
-
-# OR using Yarn
-yarn android
 ```
 
-### iOS
-
-For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
-
-The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
-
-```sh
-bundle install
-```
-
-Then, and every time you update your native dependencies, run:
-
-```sh
-bundle exec pod install
-```
-
-For more information, please visit [CocoaPods Getting Started guide](https://guides.cocoapods.org/using/getting-started.html).
-
-```sh
-# Using npm
+#### Run on iOS
+```bash
 npm run ios
-
-# OR using Yarn
-yarn ios
 ```
 
-If everything is set up correctly, you should see your new app running in the Android Emulator, iOS Simulator, or your connected device.
+## Project Structure 📁
 
-This is one way to run your app — you can also build it directly from Android Studio or Xcode.
+```
+src/
+├── components/          # Reusable UI components
+├── navigation/          # Navigation configuration
+│   └── AppNavigator.tsx # Main navigation setup
+├── screens/            # Application screens
+│   ├── SplashScreen.tsx
+│   ├── LoginScreen.tsx
+│   ├── RegisterScreen.tsx
+│   ├── HomeScreen.tsx
+│   ├── WaterScreen.tsx
+│   ├── StepsScreen.tsx
+│   └── ProfileScreen.tsx
+├── services/           # Business logic and services
+│   └── storage.ts      # AsyncStorage service
+├── types/              # TypeScript type definitions
+│   └── index.ts
+└── utils/              # Utility functions
+    └── dateUtils.ts
+```
 
-## Step 3: Modify your app
+## Key Features Implementation 🔧
 
-Now that you have successfully run the app, let's make changes!
+### Authentication Flow
+- Splash screen checks for existing user
+- Redirects to login if no user found
+- Secure password validation
+- Profile creation with comprehensive validation
 
-Open `App.tsx` in your text editor of choice and make some changes. When you save, your app will automatically update and reflect these changes — this is powered by [Fast Refresh](https://reactnative.dev/docs/fast-refresh).
+### Data Management
+- AsyncStorage for local data persistence
+- Structured data models for users and daily progress
+- CRUD operations for all data types
+- Data validation and error handling
 
-When you want to forcefully reload, for example to reset the state of your app, you can perform a full reload:
+### UI/UX Design
+- Modern gradient backgrounds
+- Smooth animations and transitions
+- Responsive design for different screen sizes
+- Intuitive navigation with tab-based structure
+- Visual feedback for user interactions
 
-- **Android**: Press the <kbd>R</kbd> key twice or select **"Reload"** from the **Dev Menu**, accessed via <kbd>Ctrl</kbd> + <kbd>M</kbd> (Windows/Linux) or <kbd>Cmd ⌘</kbd> + <kbd>M</kbd> (macOS).
-- **iOS**: Press <kbd>R</kbd> in iOS Simulator.
+### Progress Tracking
+- Real-time updates for water and steps
+- Visual progress indicators
+- Goal-based achievements
+- Historical data storage
 
-## Congratulations! :tada:
+## Future Enhancements 🚀
 
-You've successfully run and modified your React Native App. :partying_face:
+- [ ] Push notifications for water reminders
+- [ ] Integration with device health APIs
+- [ ] Social features and challenges
+- [ ] Data export functionality
+- [ ] Dark mode support
+- [ ] Workout tracking
+- [ ] Nutrition logging
+- [ ] Sleep tracking
 
-### Now what?
+## Contributing 🤝
 
-- If you want to add this new React Native code to an existing application, check out the [Integration guide](https://reactnative.dev/docs/integration-with-existing-apps).
-- If you're curious to learn more about React Native, check out the [docs](https://reactnative.dev/docs/getting-started).
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-# Troubleshooting
+## License 📄
 
-If you're having issues getting the above steps to work, see the [Troubleshooting](https://reactnative.dev/docs/troubleshooting) page.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-# Learn More
+## Support 💬
 
-To learn more about React Native, take a look at the following resources:
+For support, email support@truvida.app or join our Slack channel.
 
-- [React Native Website](https://reactnative.dev) - learn more about React Native.
-- [Getting Started](https://reactnative.dev/docs/environment-setup) - an **overview** of React Native and how setup your environment.
-- [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
-- [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
-- [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+---
+
+**TruVida** - Live Your Best Life 🌟
