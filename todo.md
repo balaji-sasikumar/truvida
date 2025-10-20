@@ -1,0 +1,7 @@
+- bottom navbar needs padding properly
+- quick actions in the home not working
+- profile page also need proper padding and water reminder toggle goes outside the screeen
+- bg color and text color after focus anol not looking good dont use green. as bg both for register and steps page
+- glass size also needed proper padding around it
+- need custom glass size whenever i enter the log its have to be added in the below with timestamp (small size) for each day new list has to be shown
+- 

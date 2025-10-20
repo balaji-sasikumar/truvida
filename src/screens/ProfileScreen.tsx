@@ -376,6 +376,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingTop: 50,
+    paddingBottom: 30,
   },
   header: {
     paddingHorizontal: 20,
@@ -453,12 +454,14 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     paddingHorizontal: 20,
+    paddingBottom: 20,
   },
   section: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 15,
-    padding: 20,
+    padding: 25,
     marginBottom: 20,
+    marginHorizontal: 5,
   },
   sectionTitle: {
     fontSize: 18,
@@ -501,6 +504,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
+    paddingRight: 5,
+    minHeight: 44,
   },
   switchLabel: {
     fontSize: 16,
@@ -545,8 +550,9 @@ const styles = StyleSheet.create({
   dangerZone: {
     backgroundColor: 'rgba(244, 67, 54, 0.1)',
     borderRadius: 15,
-    padding: 20,
+    padding: 25,
     marginBottom: 30,
+    marginHorizontal: 5,
     borderWidth: 1,
     borderColor: 'rgba(244, 67, 54, 0.3)',
   },

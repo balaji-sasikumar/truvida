@@ -104,6 +104,24 @@ export class StorageService {
     }
   }
 
+  static async saveData(key: string, data: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(key, data);
+    } catch (error) {
+      console.error('Error saving data:', error);
+      throw error;
+    }
+  }
+
+  static async getData(key: string): Promise<string | null> {
+    try {
+      return await AsyncStorage.getItem(key);
+    } catch (error) {
+      console.error('Error getting data:', error);
+      return null;
+    }
+  }
+
   static async clearAllData(): Promise<void> {
     try {
       await AsyncStorage.clear();

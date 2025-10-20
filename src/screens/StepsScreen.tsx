@@ -245,7 +245,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#43e97b',
+    backgroundColor: '#ff6b6b',
   },
   loadingContainer: {
     flex: 1,

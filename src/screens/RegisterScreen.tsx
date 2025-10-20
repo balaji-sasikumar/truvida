@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#43e97b',
+    backgroundColor: '#667eea',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -305,6 +305,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.3)',
   },
+  inputFocused: {
+    borderColor: '#4facfe',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  },
   registerButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
@@ -326,7 +330,7 @@ const styles = StyleSheet.create({
   registerButtonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#43e97b',
+    color: '#667eea',
   },
   loginContainer: {
     flexDirection: 'row',

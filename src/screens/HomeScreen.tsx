@@ -8,13 +8,18 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
-import { User, WaterIntake, StepsData } from '../types';
+import { useNavigation } from '@react-navigation/native';
+import { User, WaterIntake, StepsData, TabParamList } from '../types';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import { StorageService } from '../services/storage';
 import { getGreeting, getTodayString } from '../utils/dateUtils';
 
 const { width } = Dimensions.get('window');
 
+type HomeScreenNavigationProp = BottomTabNavigationProp<TabParamList>;
+
 const HomeScreen: React.FC = () => {
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const [user, setUser] = useState<User | null>(null);
   const [waterIntake, setWaterIntake] = useState<WaterIntake | null>(null);
   const [stepsData, setStepsData] = useState<StepsData | null>(null);
@@ -141,7 +146,7 @@ const HomeScreen: React.FC = () => {
                   <View 
                     style={[
                       styles.progressFill, 
-                      { width: `${getStepsProgress()}%`, backgroundColor: '#43e97b' }
+                      { width: `${getStepsProgress()}%`, backgroundColor: '#ff6b6b' }
                     ]} 
                   />
                 </View>
@@ -169,15 +174,27 @@ const HomeScreen: React.FC = () => {
           <View style={styles.quickActions}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionButtons}>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Water')}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.actionEmoji}>💧</Text>
                 <Text style={styles.actionText}>Add Water</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Steps')}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.actionEmoji}>🚶‍♂️</Text>
                 <Text style={styles.actionText}>Log Steps</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.actionButton}>
+              <TouchableOpacity 
+                style={styles.actionButton}
+                onPress={() => navigation.navigate('Profile')}
+                activeOpacity={0.7}
+              >
                 <Text style={styles.actionEmoji}>⚙️</Text>
                 <Text style={styles.actionText}>Settings</Text>
               </TouchableOpacity>
@@ -203,7 +220,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#4facfe',
+    backgroundColor: '#667eea',
   },
   loadingContainer: {
     flex: 1,

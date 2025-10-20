@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   StatusBar,
+  TextInput,
 } from 'react-native';
 import { User, WaterIntake } from '../types';
 import { StorageService } from '../services/storage';
@@ -14,10 +15,17 @@ import { getTodayString } from '../utils/dateUtils';
 
 const GLASS_SIZES = [150, 250, 350, 500];
 
+interface WaterEntry {
+  amount: number;
+  timestamp: string;
+}
+
 const WaterScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [waterIntake, setWaterIntake] = useState<WaterIntake | null>(null);
   const [selectedGlassSize, setSelectedGlassSize] = useState(250);
+  const [customAmount, setCustomAmount] = useState('');
+  const [waterEntries, setWaterEntries] = useState<WaterEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -29,6 +37,7 @@ const WaterScreen: React.FC = () => {
       const userData = await StorageService.getUser();
       const today = getTodayString();
       const todayWater = await StorageService.getWaterIntake(today);
+      const entries = await loadWaterEntries(today);
 
       setUser(userData);
       setWaterIntake(todayWater || {
@@ -37,6 +46,7 @@ const WaterScreen: React.FC = () => {
         totalMl: 0,
         glassSize: 250,
       });
+      setWaterEntries(entries);
     } catch (error) {
       console.error('Error loading data:', error);
     } finally {
@@ -44,18 +54,49 @@ const WaterScreen: React.FC = () => {
     }
   };
 
-  const addWater = async () => {
+  const loadWaterEntries = async (date: string): Promise<WaterEntry[]> => {
+    try {
+      const entriesKey = `water_entries_${date}`;
+      const stored = await StorageService.getData(entriesKey);
+      return stored ? JSON.parse(stored) : [];
+    } catch (error) {
+      return [];
+    }
+  };
+
+  const saveWaterEntry = async (amount: number) => {
+    const today = getTodayString();
+    const timestamp = new Date().toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    
+    const newEntry: WaterEntry = { amount, timestamp };
+    const updatedEntries = [...waterEntries, newEntry];
+    
+    try {
+      const entriesKey = `water_entries_${today}`;
+      await StorageService.saveData(entriesKey, JSON.stringify(updatedEntries));
+      setWaterEntries(updatedEntries);
+    } catch (error) {
+      console.error('Error saving water entry:', error);
+    }
+  };
+
+  const addWater = async (amount?: number) => {
     if (!waterIntake || !user) return;
 
+    const waterAmount = amount || selectedGlassSize;
     const newWaterIntake: WaterIntake = {
       ...waterIntake,
       glasses: waterIntake.glasses + 1,
-      totalMl: waterIntake.totalMl + selectedGlassSize,
+      totalMl: waterIntake.totalMl + waterAmount,
       glassSize: selectedGlassSize,
     };
 
     try {
       await StorageService.saveWaterIntake(newWaterIntake);
+      await saveWaterEntry(waterAmount);
       setWaterIntake(newWaterIntake);
 
       // Check if goal is reached
@@ -63,8 +104,21 @@ const WaterScreen: React.FC = () => {
         Alert.alert('🎉 Congratulations!', 'You\'ve reached your daily water goal!');
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to save water intake');
+      Alert.alert('Error', 'Failed to update water intake');
     }
+  };
+
+  const handleAddWater = () => addWater();
+
+  const addCustomWater = async () => {
+    const amount = parseInt(customAmount);
+    if (isNaN(amount) || amount <= 0 || amount > 2000) {
+      Alert.alert('Error', 'Please enter a valid amount (1-2000ml)');
+      return;
+    }
+    
+    await addWater(amount);
+    setCustomAmount('');
   };
 
   const removeWater = async () => {
@@ -161,6 +215,32 @@ const WaterScreen: React.FC = () => {
                 </TouchableOpacity>
               ))}
             </View>
+            
+            {/* Custom Amount Input */}
+            <View style={styles.customAmountSection}>
+              <Text style={styles.customAmountLabel}>Custom Amount</Text>
+              <View style={styles.customAmountContainer}>
+                <TextInput
+                  style={styles.customAmountInput}
+                  value={customAmount}
+                  onChangeText={setCustomAmount}
+                  placeholder="Enter ml"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                  keyboardType="numeric"
+                  maxLength={4}
+                />
+                <TouchableOpacity
+                  style={[
+                    styles.customAmountButton,
+                    !customAmount && styles.disabledButton
+                  ]}
+                  onPress={addCustomWater}
+                  disabled={!customAmount}
+                >
+                  <Text style={styles.customAmountButtonText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           </View>
 
           {/* Add Water Section */}
@@ -181,13 +261,13 @@ const WaterScreen: React.FC = () => {
 
               <TouchableOpacity
                 style={[styles.controlButton, styles.addButton]}
-                onPress={addWater}
+                onPress={handleAddWater}
               >
                 <Text style={styles.controlButtonText}>+</Text>
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.addWaterButton} onPress={addWater}>
+            <TouchableOpacity style={styles.addWaterButton} onPress={handleAddWater}>
               <Text style={styles.addWaterButtonText}>Add Glass</Text>
             </TouchableOpacity>
           </View>
@@ -202,6 +282,21 @@ const WaterScreen: React.FC = () => {
               }
             </Text>
           </View>
+
+          {/* Today's Water Log */}
+          {waterEntries.length > 0 && (
+            <View style={styles.waterLogSection}>
+              <Text style={styles.sectionTitle}>Today's Water Log</Text>
+              <View style={styles.waterLogList}>
+                {waterEntries.slice(-5).map((entry, index) => (
+                  <View key={index} style={styles.waterLogEntry}>
+                    <Text style={styles.waterLogAmount}>{entry.amount}ml</Text>
+                    <Text style={styles.waterLogTime}>{entry.timestamp}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
 
           {/* Tips */}
           <View style={styles.tipsSection}>
@@ -443,6 +538,74 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 8,
     lineHeight: 24,
+  },
+  customAmountSection: {
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  customAmountLabel: {
+    fontSize: 16,
+    color: '#fff',
+    marginBottom: 10,
+    fontWeight: '600',
+  },
+  customAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  customAmountInput: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#fff',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  customAmountButton: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 10,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+  },
+  customAmountButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#4facfe',
+  },
+  disabledButton: {
+    opacity: 0.5,
+  },
+  waterLogSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  waterLogList: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 15,
+    padding: 15,
+  },
+  waterLogEntry: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  waterLogAmount: {
+    fontSize: 16,
+    color: '#fff',
+    fontWeight: '600',
+  },
+  waterLogTime: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
 });
 
