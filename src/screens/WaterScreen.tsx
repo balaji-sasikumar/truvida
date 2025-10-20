@@ -9,6 +9,16 @@ import {
   StatusBar,
   TextInput,
 } from 'react-native';
+import {
+  Svg,
+  Path,
+  G,
+  Use,
+  Defs,
+  Mask,
+  Rect,
+  Circle as SvgCircle,
+} from 'react-native-svg';
 import { User, WaterIntake } from '../types';
 import { StorageService } from '../services/storage';
 import { getTodayString } from '../utils/dateUtils';
@@ -16,6 +26,7 @@ import { getTodayString } from '../utils/dateUtils';
 const GLASS_SIZES = [150, 250, 350, 500];
 
 interface WaterEntry {
+  id: string;
   amount: number;
   timestamp: string;
 }
@@ -25,6 +36,9 @@ const WaterScreen: React.FC = () => {
   const [waterIntake, setWaterIntake] = useState<WaterIntake | null>(null);
   const [selectedGlassSize, setSelectedGlassSize] = useState(250);
   const [customAmount, setCustomAmount] = useState('');
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState('');
   const [waterEntries, setWaterEntries] = useState<WaterEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -40,12 +54,14 @@ const WaterScreen: React.FC = () => {
       const entries = await loadWaterEntries(today);
 
       setUser(userData);
-      setWaterIntake(todayWater || {
-        date: today,
-        glasses: 0,
-        totalMl: 0,
-        glassSize: 250,
-      });
+      setWaterIntake(
+        todayWater || {
+          date: today,
+          glasses: 0,
+          totalMl: 0,
+          glassSize: 250,
+        },
+      );
       setWaterEntries(entries);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -68,12 +84,16 @@ const WaterScreen: React.FC = () => {
     const today = getTodayString();
     const timestamp = new Date().toLocaleTimeString('en-US', {
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
-    
-    const newEntry: WaterEntry = { amount, timestamp };
+
+    const newEntry: WaterEntry = {
+      id: Date.now().toString(),
+      amount,
+      timestamp,
+    };
     const updatedEntries = [...waterEntries, newEntry];
-    
+
     try {
       const entriesKey = `water_entries_${today}`;
       await StorageService.saveData(entriesKey, JSON.stringify(updatedEntries));
@@ -100,8 +120,14 @@ const WaterScreen: React.FC = () => {
       setWaterIntake(newWaterIntake);
 
       // Check if goal is reached
-      if (newWaterIntake.totalMl >= user.waterGoal && waterIntake.totalMl < user.waterGoal) {
-        Alert.alert('🎉 Congratulations!', 'You\'ve reached your daily water goal!');
+      if (
+        newWaterIntake.totalMl >= user.waterGoal &&
+        waterIntake.totalMl < user.waterGoal
+      ) {
+        Alert.alert(
+          '🎉 Congratulations!',
+          "You've reached your daily water goal!",
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to update water intake');
@@ -116,7 +142,7 @@ const WaterScreen: React.FC = () => {
       Alert.alert('Error', 'Please enter a valid amount (1-2000ml)');
       return;
     }
-    
+
     await addWater(amount);
     setCustomAmount('');
   };
@@ -135,6 +161,75 @@ const WaterScreen: React.FC = () => {
       setWaterIntake(newWaterIntake);
     } catch (error) {
       Alert.alert('Error', 'Failed to update water intake');
+    }
+  };
+
+  const removeWaterEntry = async (entryId: string) => {
+    const today = getTodayString();
+    const updatedEntries = waterEntries.filter(entry => entry.id !== entryId);
+
+    try {
+      const entriesKey = `water_entries_${today}`;
+      await StorageService.saveData(entriesKey, JSON.stringify(updatedEntries));
+      setWaterEntries(updatedEntries);
+
+      // Also update the overall water intake
+      const totalRemoved =
+        waterEntries.find(entry => entry.id === entryId)?.amount || 0;
+      if (waterIntake) {
+        const newWaterIntake = {
+          ...waterIntake,
+          glasses: Math.max(0, waterIntake.glasses - 1),
+          totalMl: Math.max(0, waterIntake.totalMl - totalRemoved),
+        };
+        await StorageService.saveWaterIntake(newWaterIntake);
+        setWaterIntake(newWaterIntake);
+      }
+    } catch (error) {
+      console.error('Error removing water entry:', error);
+      Alert.alert('Error', 'Failed to remove water entry');
+    }
+  };
+
+  const saveWaterGoal = async () => {
+    const newGoal = parseInt(goalInput);
+
+    if (isNaN(newGoal) || newGoal <= 0) {
+      Alert.alert('Error', 'Please enter a valid water goal');
+      return;
+    }
+
+    if (newGoal < 500 || newGoal > 10000) {
+      Alert.alert('Error', 'Water goal should be between 500ml and 10000ml');
+      return;
+    }
+
+    try {
+      if (!user) return;
+
+      // Update user's water goal
+      const updatedUser: User = {
+        id: user.id,
+        name: user.name,
+        username: user.username,
+        password: user.password,
+        age: user.age,
+        height: user.height,
+        weight: user.weight,
+        waterGoal: newGoal,
+        stepsGoal: user.stepsGoal,
+        notificationsEnabled: user.notificationsEnabled,
+        waterReminderInterval: user.waterReminderInterval,
+      };
+
+      await StorageService.saveUser(updatedUser);
+      setUser(updatedUser);
+      setEditingGoal(false);
+      setGoalInput('');
+
+      Alert.alert('Success', 'Water goal updated successfully!');
+    } catch (error) {
+      Alert.alert('Error', 'Failed to update water goal');
     }
   };
 
@@ -159,33 +254,58 @@ const WaterScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <View style={styles.gradient}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.title}>💧 Water Tracking</Text>
-            <Text style={styles.subtitle}>Stay hydrated throughout the day</Text>
+            <Text style={styles.subtitle}>
+              Stay hydrated throughout the day
+            </Text>
           </View>
 
           {/* Progress Circle */}
           <View style={styles.progressSection}>
             <View style={styles.progressCircle}>
+              <WaterWaveProgress
+                progress={getProgress() / 100}
+                size={200}
+                strokeWidth={8}
+                waterColor="#4facfe"
+                backgroundColor="#2d2d2d"
+                borderColor="#444"
+              />
               <View style={styles.progressInner}>
-                <Text style={styles.progressText}>{Math.round(getProgress())}%</Text>
+                <Text style={styles.progressText}>
+                  {Math.round(getProgress())}%
+                </Text>
                 <Text style={styles.progressLabel}>Complete</Text>
               </View>
             </View>
-            
+
             <View style={styles.statsContainer}>
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{waterIntake.totalMl}ml</Text>
                 <Text style={styles.statLabel}>Consumed</Text>
               </View>
-              <View style={styles.statBox}>
+              <TouchableOpacity
+                style={styles.goalBox}
+                onPress={() => {
+                  setEditingGoal(true);
+                  setGoalInput(user?.waterGoal.toString() || '');
+                }}
+              >
                 <Text style={styles.statValue}>{user.waterGoal}ml</Text>
                 <Text style={styles.statLabel}>Goal</Text>
-              </View>
+              </TouchableOpacity>
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{waterIntake.glasses}</Text>
                 <Text style={styles.statLabel}>Glasses</Text>
@@ -193,50 +313,121 @@ const WaterScreen: React.FC = () => {
             </View>
           </View>
 
+          {/* Edit Goal Modal */}
+          {editingGoal && (
+            <View style={styles.editGoalModal}>
+              <View style={styles.editGoalContainer}>
+                <Text style={styles.editGoalTitle}>Edit Water Goal</Text>
+                <Text style={styles.editGoalSubtitle}>
+                  Set your daily water intake goal
+                </Text>
+
+                <TextInput
+                  style={styles.editGoalInput}
+                  value={goalInput}
+                  onChangeText={setGoalInput}
+                  placeholder="Enter goal in ml"
+                  keyboardType="numeric"
+                  placeholderTextColor="rgba(255, 255, 255, 0.6)"
+                />
+
+                <View style={styles.editGoalButtons}>
+                  <TouchableOpacity
+                    style={[styles.editGoalButton, styles.cancelButton]}
+                    onPress={() => setEditingGoal(false)}
+                  >
+                    <Text style={styles.editGoalButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.editGoalButton, styles.saveButton]}
+                    onPress={saveWaterGoal}
+                    disabled={!goalInput}
+                  >
+                    <Text style={styles.editGoalButtonText}>Save</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
+
           {/* Glass Size Selection */}
           <View style={styles.glassSizeSection}>
             <Text style={styles.sectionTitle}>Glass Size</Text>
             <View style={styles.glassSizeButtons}>
-              {GLASS_SIZES.map((size) => (
-                <TouchableOpacity
-                  key={size}
-                  style={[
-                    styles.glassSizeButton,
-                    selectedGlassSize === size && styles.selectedGlassSize
-                  ]}
-                  onPress={() => setSelectedGlassSize(size)}
-                >
-                  <Text style={[
-                    styles.glassSizeText,
-                    selectedGlassSize === size && styles.selectedGlassSizeText
-                  ]}>
-                    {size}ml
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {GLASS_SIZES.map(size => {
+                let glassIcon = '';
+                if (size <= 200) {
+                  glassIcon = '🥃'; // Small glass
+                } else if (size <= 300) {
+                  glassIcon = '🥛'; // Glass
+                } else if (size <= 400) {
+                  glassIcon = '🥤'; // Cup
+                } else {
+                  glassIcon = '🧋'; // Large cup
+                }
+
+                return (
+                  <TouchableOpacity
+                    key={size}
+                    style={[
+                      styles.glassSizeButton,
+                      selectedGlassSize === size && styles.selectedGlassSize,
+                    ]}
+                    onPress={() => setSelectedGlassSize(size)}
+                  >
+                    <View style={styles.glassIconContainer}>
+                      <Text
+                        style={[
+                          styles.glassSizeIcon,
+                          selectedGlassSize === size &&
+                            styles.selectedGlassSizeText,
+                        ]}
+                      >
+                        {glassIcon}
+                      </Text>
+                      <Text
+                        style={[
+                          styles.glassSizeText,
+                          selectedGlassSize === size &&
+                            styles.selectedGlassSizeText,
+                        ]}
+                      >
+                        {size}ml
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
-            
+
             {/* Custom Amount Input */}
             <View style={styles.customAmountSection}>
               <Text style={styles.customAmountLabel}>Custom Amount</Text>
               <View style={styles.customAmountContainer}>
                 <TextInput
-                  style={styles.customAmountInput}
+                  style={[
+                    styles.customAmountInput,
+                    focusedInput === 'customAmount' &&
+                      styles.customAmountInputFocused,
+                  ]}
                   value={customAmount}
                   onChangeText={setCustomAmount}
                   placeholder="Enter ml"
                   placeholderTextColor="rgba(255, 255, 255, 0.6)"
                   keyboardType="numeric"
                   maxLength={4}
+                  onFocus={() => setFocusedInput('customAmount')}
+                  onBlur={() => setFocusedInput(null)}
                 />
                 <TouchableOpacity
                   style={[
                     styles.customAmountButton,
-                    !customAmount && styles.disabledButton
+                    !customAmount && styles.disabledButton,
                   ]}
                   onPress={addCustomWater}
                   disabled={!customAmount}
                 >
+                  <Text style={{ fontSize: 18 }}>🥛</Text>
                   <Text style={styles.customAmountButtonText}>Add</Text>
                 </TouchableOpacity>
               </View>
@@ -255,7 +446,7 @@ const WaterScreen: React.FC = () => {
               </TouchableOpacity>
 
               <View style={styles.glassDisplay}>
-                <Text style={styles.glassEmoji}>🥤</Text>
+                <Text style={styles.glassEmoji}>💧</Text>
                 <Text style={styles.glassSize}>{selectedGlassSize}ml</Text>
               </View>
 
@@ -267,7 +458,10 @@ const WaterScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity style={styles.addWaterButton} onPress={handleAddWater}>
+            <TouchableOpacity
+              style={styles.addWaterButton}
+              onPress={handleAddWater}
+            >
               <Text style={styles.addWaterButtonText}>Add Glass</Text>
             </TouchableOpacity>
           </View>
@@ -276,10 +470,9 @@ const WaterScreen: React.FC = () => {
           <View style={styles.remainingSection}>
             <Text style={styles.remainingTitle}>To reach your goal:</Text>
             <Text style={styles.remainingText}>
-              {getRemainingGlasses() > 0 
+              {getRemainingGlasses() > 0
                 ? `${getRemainingGlasses()} more glasses (${selectedGlassSize}ml each)`
-                : 'Goal achieved! 🎉'
-              }
+                : 'Goal achieved! 🎉'}
             </Text>
           </View>
 
@@ -288,26 +481,25 @@ const WaterScreen: React.FC = () => {
             <View style={styles.waterLogSection}>
               <Text style={styles.sectionTitle}>Today's Water Log</Text>
               <View style={styles.waterLogList}>
-                {waterEntries.slice(-5).map((entry, index) => (
-                  <View key={index} style={styles.waterLogEntry}>
-                    <Text style={styles.waterLogAmount}>{entry.amount}ml</Text>
-                    <Text style={styles.waterLogTime}>{entry.timestamp}</Text>
+                {waterEntries.map(entry => (
+                  <View key={entry.id} style={styles.waterLogEntry}>
+                    <View style={styles.waterLogInfo}>
+                      <Text style={styles.waterLogAmount}>
+                        {entry.amount}ml
+                      </Text>
+                      <Text style={styles.waterLogTime}>{entry.timestamp}</Text>
+                    </View>
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => removeWaterEntry(entry.id)}
+                    >
+                      <Text style={styles.deleteButtonText}>✕</Text>
+                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
             </View>
           )}
-
-          {/* Tips */}
-          <View style={styles.tipsSection}>
-            <Text style={styles.tipsTitle}>💡 Hydration Tips</Text>
-            <View style={styles.tipsList}>
-              <Text style={styles.tipItem}>• Start your day with a glass of water</Text>
-              <Text style={styles.tipItem}>• Drink water before meals</Text>
-              <Text style={styles.tipItem}>• Keep a water bottle nearby</Text>
-              <Text style={styles.tipItem}>• Set reminders throughout the day</Text>
-            </View>
-          </View>
         </ScrollView>
       </View>
     </View>
@@ -320,7 +512,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#4facfe',
+    backgroundColor: '#121212',
   },
   loadingContainer: {
     flex: 1,
@@ -349,26 +541,41 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   progressSection: {
     alignItems: 'center',
-    paddingHorizontal: 20,
-    marginBottom: 30,
+    paddingHorizontal: 24,
+    marginBottom: 28,
   },
+  glassSizeSection: {
+    paddingHorizontal: 24,
+    marginBottom: 24,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 14, // or manually add marginHorizontal on .statBox
+    width: '100%',
+  },
+
   progressCircle: {
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
-    borderWidth: 8,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    position: 'relative',
   },
   progressInner: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: 'center',
     alignItems: 'center',
   },
   progressText: {
@@ -379,20 +586,88 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    width: '100%',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   statBox: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
     paddingVertical: 15,
     paddingHorizontal: 20,
     minWidth: 80,
+  },
+  goalBox: {
+    alignItems: 'center',
+    backgroundColor: '#2d2d2d',
+    borderRadius: 15,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    minWidth: 80,
+  },
+  editGoalModal: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+  },
+  editGoalContainer: {
+    backgroundColor: '#1e1e1e',
+    borderRadius: 20,
+    padding: 25,
+    width: '85%',
+    alignItems: 'center',
+  },
+  editGoalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 8,
+  },
+  editGoalSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  editGoalInput: {
+    backgroundColor: '#2d2d2d',
+    borderRadius: 10,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#fff',
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#444',
+    marginBottom: 20,
+  },
+  editGoalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+  },
+  editGoalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#333',
+  },
+  saveButton: {
+    backgroundColor: '#4facfe',
+  },
+  editGoalButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
   },
   statValue: {
     fontSize: 20,
@@ -402,11 +677,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
-  },
-  glassSizeSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   sectionTitle: {
     fontSize: 20,
@@ -416,27 +687,40 @@ const styles = StyleSheet.create({
   },
   glassSizeButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
+    marginBottom: 20,
   },
   glassSizeButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 15,
+    paddingHorizontal: 15,
     borderWidth: 2,
-    borderColor: 'transparent',
+    borderColor: '#333',
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
   },
   selectedGlassSize: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderColor: '#fff',
+    backgroundColor: '#444',
+    borderColor: '#4facfe',
+  },
+  glassIconContainer: {
+    alignItems: 'center',
+  },
+  glassSizeIcon: {
+    fontSize: 30,
+    marginBottom: 8,
+    color: '#fff',
   },
   glassSizeText: {
-    fontSize: 16,
+    fontSize: 14,
     color: '#fff',
     fontWeight: '600',
   },
   selectedGlassSizeText: {
     color: '#4facfe',
+    fontWeight: '700',
   },
   addWaterSection: {
     paddingHorizontal: 20,
@@ -469,10 +753,11 @@ const styles = StyleSheet.create({
   },
   glassDisplay: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
-    paddingVertical: 15,
-    paddingHorizontal: 25,
+    paddingVertical: 25,
+    paddingHorizontal: 30,
+    minWidth: 120,
   },
   glassEmoji: {
     fontSize: 40,
@@ -515,7 +800,7 @@ const styles = StyleSheet.create({
   },
   remainingText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   tipsSection: {
@@ -529,13 +814,13 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   tipsList: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
     padding: 20,
   },
   tipItem: {
     fontSize: 16,
-    color: '#fff',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 8,
     lineHeight: 24,
   },
@@ -554,29 +839,43 @@ const styles = StyleSheet.create({
   customAmountContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#222',
+    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 12,
+    marginTop: 6,
+    borderWidth: 1,
+    borderColor: '#333',
     gap: 10,
   },
   customAmountInput: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    fontSize: 16,
     color: '#fff',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: 'transparent',
+    fontSize: 16,
+    padding: 0,
+    marginRight: 10,
+    borderWidth: 0,
   },
   customAmountButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 10,
+    backgroundColor: '#4facfe',
+    borderRadius: 8,
     paddingHorizontal: 20,
-    paddingVertical: 12,
+    paddingVertical: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   customAmountButtonText: {
+    color: '#fff',
+    fontWeight: '700',
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#4facfe',
+    marginLeft: 6,
+  },
+  customAmountInputFocused: {
+    borderColor: '#667eea',
+    backgroundColor: '#333',
   },
   disabledButton: {
     opacity: 0.5,
@@ -586,7 +885,7 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   waterLogList: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
     padding: 15,
   },
@@ -594,19 +893,128 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+    borderBottomColor: '#333',
+  },
+  waterLogInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   waterLogAmount: {
     fontSize: 16,
     color: '#fff',
     fontWeight: '600',
+    marginRight: 10,
   },
   waterLogTime: {
     fontSize: 14,
     color: 'rgba(255, 255, 255, 0.7)',
   },
+  deleteButton: {
+    backgroundColor: 'rgba(255, 89, 94, 0.2)',
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  deleteButtonText: {
+    fontSize: 14,
+    color: '#ff595e',
+    fontWeight: 'bold',
+  },
 });
+
+// WaterWaveProgress Component
+interface WaterWaveProgressProps {
+  progress: number;
+  size: number;
+  strokeWidth: number;
+  waterColor: string;
+  backgroundColor: string;
+  borderColor: string;
+}
+
+const WaterWaveProgress: React.FC<WaterWaveProgressProps> = ({
+  progress,
+  size,
+  strokeWidth,
+  waterColor,
+  backgroundColor,
+  borderColor,
+}) => {
+  // Calculate wave effect based on progress
+  const radius = (size - strokeWidth) / 2;
+  const waveHeight = 5; // Height of the wave
+  const waveLength = 40; // Length of the wave pattern
+  const waterLevel = size / 2 + (size / 2) * progress * 0.9; // Calculate water level based on progress (inverted)
+
+  // Create a wave pattern that moves horizontally for animation effect
+  const createWavePath = (offset: number) => {
+    let path = `M 0 ${waterLevel}`;
+    for (let i = 0; i <= size; i += 5) {
+      const waveY =
+        waterLevel +
+        waveHeight * Math.sin(((i + offset) * 2 * Math.PI) / waveLength);
+      path += ` L ${i} ${waveY}`;
+    }
+    path += ` L ${size} ${size} L 0 ${size} Z`;
+    return path;
+  };
+
+  // Simple animated offset for wave movement
+  const [waveOffset, setWaveOffset] = React.useState<number>(0);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setWaveOffset(prev => (prev + 2) % waveLength);
+    }, 200);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <View
+      style={{
+        width: size,
+        height: size,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}
+    >
+      <Svg width={size} height={size}>
+        <Defs>
+          <Mask id="circle-mask">
+            <SvgCircle cx={size / 2} cy={size / 2} r={radius} fill="#fff" />
+          </Mask>
+        </Defs>
+        {/* Background circle */}
+        <SvgCircle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          fill={backgroundColor}
+          stroke={borderColor}
+          strokeWidth={strokeWidth}
+        />
+        {/* Masked water wave */}
+        <G mask="url(#circle-mask)">
+          <Path
+            d={createWavePath(waveOffset)}
+            fill={waterColor}
+            opacity={0.8}
+          />
+          {/* Optional: Add second wave for depth */}
+          <Path
+            d={createWavePath(waveOffset + waveLength / 2)}
+            fill={waterColor}
+            opacity={0.4}
+          />
+        </G>
+      </Svg>
+    </View>
+  );
+};
 
 export default WaterScreen;

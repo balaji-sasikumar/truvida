@@ -21,8 +21,6 @@ const StepsScreen: React.FC = () => {
   useEffect(() => {
     loadData();
     // In a real app, you would set up pedometer listener here
-    // For demo purposes, we'll simulate step counting
-    simulateStepCounting();
   }, []);
 
   const loadData = async () => {
@@ -43,22 +41,7 @@ const StepsScreen: React.FC = () => {
     }
   };
 
-  const simulateStepCounting = () => {
-    // Simulate random step increments for demo
-    const interval = setInterval(() => {
-      setStepsData(prev => {
-        if (prev) {
-          const newSteps = prev.steps + Math.floor(Math.random() * 10);
-          const updatedData = { ...prev, steps: newSteps };
-          StorageService.saveStepsData(updatedData);
-          return updatedData;
-        }
-        return prev;
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  };
+  
 
   const addSteps = async (stepCount: number) => {
     if (!stepsData || !user) return;
@@ -191,7 +174,7 @@ const StepsScreen: React.FC = () => {
                 styles.activityLevel,
                 stepsData.steps >= 2500 && styles.activeLevel
               ]}>
-                <Text style={styles.activityEmoji}>🚶‍♂️</Text>
+                <Text style={styles.activityEmoji}>👣</Text>
                 <Text style={styles.activityText}>Light</Text>
                 <Text style={styles.activitySteps}>2,500+</Text>
               </View>
@@ -199,7 +182,7 @@ const StepsScreen: React.FC = () => {
                 styles.activityLevel,
                 stepsData.steps >= 5000 && styles.activeLevel
               ]}>
-                <Text style={styles.activityEmoji}>🚶‍♀️</Text>
+                <Text style={styles.activityEmoji}>👣</Text>
                 <Text style={styles.activityText}>Moderate</Text>
                 <Text style={styles.activitySteps}>5,000+</Text>
               </View>
@@ -207,7 +190,7 @@ const StepsScreen: React.FC = () => {
                 styles.activityLevel,
                 stepsData.steps >= 10000 && styles.activeLevel
               ]}>
-                <Text style={styles.activityEmoji}>🏃‍♂️</Text>
+                <Text style={styles.activityEmoji}>🏃</Text>
                 <Text style={styles.activityText}>Active</Text>
                 <Text style={styles.activitySteps}>10,000+</Text>
               </View>
@@ -215,24 +198,14 @@ const StepsScreen: React.FC = () => {
                 styles.activityLevel,
                 stepsData.steps >= 15000 && styles.activeLevel
               ]}>
-                <Text style={styles.activityEmoji}>🏃‍♀️</Text>
+                <Text style={styles.activityEmoji}>🏃</Text>
                 <Text style={styles.activityText}>Very Active</Text>
                 <Text style={styles.activitySteps}>15,000+</Text>
               </View>
             </View>
           </View>
 
-          {/* Tips */}
-          <View style={styles.tipsSection}>
-            <Text style={styles.tipsTitle}>💡 Walking Tips</Text>
-            <View style={styles.tipsList}>
-              <Text style={styles.tipItem}>• Take the stairs instead of elevators</Text>
-              <Text style={styles.tipItem}>• Park farther away from your destination</Text>
-              <Text style={styles.tipItem}>• Take walking breaks during work</Text>
-              <Text style={styles.tipItem}>• Walk while talking on the phone</Text>
-              <Text style={styles.tipItem}>• Set hourly reminders to move</Text>
-            </View>
-          </View>
+          
         </ScrollView>
       </View>
     </View>
@@ -245,7 +218,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#ff6b6b',
+    backgroundColor: '#121212',
   },
   loadingContainer: {
     flex: 1,
@@ -274,7 +247,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   progressSection: {
@@ -286,12 +259,12 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#2d2d2d',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 30,
     borderWidth: 8,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#444',
   },
   progressInner: {
     alignItems: 'center',
@@ -304,12 +277,12 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 5,
   },
   progressPercentage: {
     fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255, 255, 255, 0.6)',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -318,7 +291,7 @@ const styles = StyleSheet.create({
   },
   statBox: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
     paddingVertical: 15,
     paddingHorizontal: 20,
@@ -332,7 +305,7 @@ const styles = StyleSheet.create({
   },
   statLabel: {
     fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   quickAddSection: {
     paddingHorizontal: 20,
@@ -349,7 +322,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
   },
   quickAddButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 12,
     paddingVertical: 15,
     paddingHorizontal: 25,
@@ -365,7 +338,7 @@ const styles = StyleSheet.create({
   quickAddText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#43e97b',
+    color: '#fff',
   },
   progressBarSection: {
     paddingHorizontal: 20,
@@ -373,7 +346,7 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#333',
     borderRadius: 6,
     marginBottom: 10,
   },
@@ -384,7 +357,7 @@ const styles = StyleSheet.create({
   },
   progressBarText: {
     fontSize: 16,
-    color: '#fff',
+    color: 'rgba(255, 255, 255, 0.9)',
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -398,7 +371,7 @@ const styles = StyleSheet.create({
   },
   activityLevel: {
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 12,
     paddingVertical: 15,
     paddingHorizontal: 10,
@@ -406,7 +379,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   activeLevel: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: '#444',
   },
   activityEmoji: {
     fontSize: 24,
@@ -421,27 +394,21 @@ const styles = StyleSheet.create({
   },
   activitySteps: {
     fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   tipsSection: {
     paddingHorizontal: 20,
     marginBottom: 30,
   },
-  tipsTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 15,
-  },
   tipsList: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
     padding: 20,
   },
   tipItem: {
     fontSize: 16,
-    color: '#fff',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 8,
     lineHeight: 24,
   },

@@ -4,6 +4,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { RootStackParamList, TabParamList } from '../types';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 // Screens
 import SplashScreen from '../screens/SplashScreen';
@@ -20,21 +21,18 @@ const Tab = createBottomTabNavigator<TabParamList>();
 const MainTabs = () => {
   return (
     <Tab.Navigator
-      screenOptions={{
+      screenOptions={({ route }) => ({
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: '#fff',
+          backgroundColor: '#1a1a1a',
           borderTopWidth: 0,
           elevation: 10,
           shadowColor: '#000',
-          shadowOffset: {
-            width: 0,
-            height: -2,
-          },
+          shadowOffset: { width: 0, height: -2 },
           shadowOpacity: 0.1,
           shadowRadius: 10,
-          height: 90,
-          paddingBottom: 20,
+          height: 100,
+          paddingBottom: 25,
           paddingTop: 15,
           paddingHorizontal: 20,
         },
@@ -45,61 +43,48 @@ const MainTabs = () => {
           fontWeight: '600',
           marginTop: 5,
         },
-      }}
+        tabBarIcon: ({ focused, color, size }) => {
+          let iconName = '';
+          if (route.name === 'Home')
+            iconName = focused ? 'home' : 'home-outline';
+          if (route.name === 'Water')
+            iconName = focused ? 'water' : 'water-outline';
+          if (route.name === 'Steps')
+            iconName = focused ? 'walk' : 'walk-outline';
+          if (route.name === 'Profile')
+            iconName = focused ? 'person-circle' : 'person-circle-outline';
+          return (
+            <Ionicons
+              name={iconName}
+              color={color}
+              size={size}
+              style={focused && { transform: [{ scale: 1.2 }] }}
+            />
+          );
+        },
+      })}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{
-          tabBarLabel: 'Home',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon emoji="🏠" color={color} size={size} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Home' }}
       />
       <Tab.Screen
         name="Water"
         component={WaterScreen}
-        options={{
-          tabBarLabel: 'Water',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon emoji="💧" color={color} size={size} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Water' }}
       />
       <Tab.Screen
         name="Steps"
         component={StepsScreen}
-        options={{
-          tabBarLabel: 'Steps',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon emoji="👟" color={color} size={size} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Steps' }}
       />
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
-        options={{
-          tabBarLabel: 'Profile',
-          tabBarIcon: ({ color, size }) => (
-            <TabIcon emoji="👤" color={color} size={size} />
-          ),
-        }}
+        options={{ tabBarLabel: 'Profile' }}
       />
     </Tab.Navigator>
-  );
-};
-
-const TabIcon = ({ emoji, color, size }: { emoji: string; color: string; size: number }) => {
-  return (
-    <Text style={{
-      fontSize: size,
-      color: color,
-      textAlign: 'center',
-    }}>
-      {emoji}
-    </Text>
   );
 };
 

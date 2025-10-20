@@ -362,7 +362,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#667eea',
+    backgroundColor: '#121212',
   },
   loadingContainer: {
     flex: 1,
@@ -376,7 +376,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingTop: 50,
-    paddingBottom: 30,
+    paddingBottom: 120, // Increased to accommodate bottom navigation
   },
   header: {
     paddingHorizontal: 20,
@@ -392,11 +392,11 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.8)',
+    color: 'rgba(255, 255, 255, 0.7)',
     textAlign: 'center',
   },
   profileCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    backgroundColor: '#1e1e1e',
     borderRadius: 20,
     marginHorizontal: 20,
     marginBottom: 20,
@@ -434,12 +434,12 @@ const styles = StyleSheet.create({
   profileName: {
     fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#fff',
     marginBottom: 4,
   },
   profileUsername: {
     fontSize: 16,
-    color: '#666',
+    color: 'rgba(255, 255, 255, 0.7)',
   },
   editButton: {
     backgroundColor: '#667eea',
@@ -457,7 +457,7 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
   section: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: '#1e1e1e',
     borderRadius: 15,
     padding: 25,
     marginBottom: 20,
@@ -481,36 +481,38 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: '#fff',
+    color: 'rgba(255, 255, 255, 0.9)',
     marginBottom: 8,
     fontWeight: '500',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 10,
     paddingHorizontal: 15,
     paddingVertical: 12,
     fontSize: 16,
     color: '#fff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#444',
   },
   disabledInput: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#252525',
+    borderColor: '#444',
   },
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
-    paddingRight: 5,
     minHeight: 44,
+    paddingHorizontal: 10,
   },
   switchLabel: {
     fontSize: 16,
     color: '#fff',
     fontWeight: '500',
+    flex: 1,
+    marginRight: 10,
   },
   actionButtons: {
     flexDirection: 'row',
@@ -548,13 +550,13 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   dangerZone: {
-    backgroundColor: 'rgba(244, 67, 54, 0.1)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 15,
     padding: 25,
     marginBottom: 30,
     marginHorizontal: 5,
     borderWidth: 1,
-    borderColor: 'rgba(244, 67, 54, 0.3)',
+    borderColor: '#f44336',
   },
   dangerTitle: {
     fontSize: 18,

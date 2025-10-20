@@ -31,6 +31,7 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
     password: '',
     confirmPassword: '',
   });
+  const [focusedInput, setFocusedInput] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
@@ -135,12 +136,14 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Full Name</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedInput === 'name' && styles.inputFocused]}
                 value={formData.name}
                 onChangeText={(value) => handleInputChange('name', value)}
                 placeholder="Enter your full name"
                 placeholderTextColor="rgba(255, 255, 255, 0.7)"
                 autoCapitalize="words"
+                onFocus={() => setFocusedInput('name')}
+                onBlur={() => setFocusedInput(null)}
               />
             </View>
 
@@ -148,24 +151,28 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
               <View style={[styles.inputContainer, styles.halfWidth]}>
                 <Text style={styles.inputLabel}>Age</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, focusedInput === 'age' && styles.inputFocused]}
                   value={formData.age}
                   onChangeText={(value) => handleInputChange('age', value)}
                   placeholder="Age"
                   placeholderTextColor="rgba(255, 255, 255, 0.7)"
                   keyboardType="numeric"
+                  onFocus={() => setFocusedInput('age')}
+                  onBlur={() => setFocusedInput(null)}
                 />
               </View>
 
               <View style={[styles.inputContainer, styles.halfWidth]}>
                 <Text style={styles.inputLabel}>Height (cm)</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, focusedInput === 'height' && styles.inputFocused]}
                   value={formData.height}
                   onChangeText={(value) => handleInputChange('height', value)}
                   placeholder="Height"
                   placeholderTextColor="rgba(255, 255, 255, 0.7)"
                   keyboardType="numeric"
+                  onFocus={() => setFocusedInput('height')}
+                  onBlur={() => setFocusedInput(null)}
                 />
               </View>
             </View>
@@ -173,32 +180,36 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Weight (kg)</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedInput === 'weight' && styles.inputFocused]}
                 value={formData.weight}
                 onChangeText={(value) => handleInputChange('weight', value)}
                 placeholder="Enter your weight"
                 placeholderTextColor="rgba(255, 255, 255, 0.7)"
                 keyboardType="numeric"
+                onFocus={() => setFocusedInput('weight')}
+                onBlur={() => setFocusedInput(null)}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Username</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedInput === 'username' && styles.inputFocused]}
                 value={formData.username}
                 onChangeText={(value) => handleInputChange('username', value)}
                 placeholder="Choose a username"
                 placeholderTextColor="rgba(255, 255, 255, 0.7)"
                 autoCapitalize="none"
                 autoCorrect={false}
+                onFocus={() => setFocusedInput('username')}
+                onBlur={() => setFocusedInput(null)}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Password</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedInput === 'password' && styles.inputFocused]}
                 value={formData.password}
                 onChangeText={(value) => handleInputChange('password', value)}
                 placeholder="Create a password"
@@ -206,13 +217,15 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
+                onFocus={() => setFocusedInput('password')}
+                onBlur={() => setFocusedInput(null)}
               />
             </View>
 
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
               <TextInput
-                style={styles.input}
+                style={[styles.input, focusedInput === 'confirmPassword' && styles.inputFocused]}
                 value={formData.confirmPassword}
                 onChangeText={(value) => handleInputChange('confirmPassword', value)}
                 placeholder="Confirm your password"
@@ -220,6 +233,8 @@ const RegisterScreen: React.FC<Props> = ({ navigation }) => {
                 secureTextEntry
                 autoCapitalize="none"
                 autoCorrect={false}
+                onFocus={() => setFocusedInput('confirmPassword')}
+                onBlur={() => setFocusedInput(null)}
               />
             </View>
 
@@ -252,7 +267,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
-    backgroundColor: '#667eea',
+    backgroundColor: '#121212',
   },
   scrollContainer: {
     flexGrow: 1,
@@ -296,18 +311,18 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: '#2d2d2d',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 16,
     color: '#fff',
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderColor: '#444',
   },
   inputFocused: {
-    borderColor: '#4facfe',
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+    borderColor: '#667eea',
+    backgroundColor: '#333',
   },
   registerButton: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
