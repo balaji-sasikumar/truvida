@@ -10,6 +10,7 @@ import {
   Switch,
   StatusBar,
 } from 'react-native';
+
 import { User } from '../types';
 import { StorageService } from '../services/storage';
 
@@ -60,56 +61,61 @@ const ProfileScreen: React.FC = () => {
   };
 
   const validateForm = (): boolean => {
-    const { name, age, height, weight, waterGoal, stepsGoal, waterReminderInterval } = formData;
-
+    const {
+      name,
+      age,
+      height,
+      weight,
+      waterGoal,
+      stepsGoal,
+      waterReminderInterval,
+    } = formData;
     if (!name.trim()) {
       Alert.alert('Error', 'Name is required');
       return false;
     }
-
     const ageNum = parseInt(age);
     const heightNum = parseFloat(height);
     const weightNum = parseFloat(weight);
     const waterGoalNum = parseInt(waterGoal);
     const stepsGoalNum = parseInt(stepsGoal);
     const reminderInterval = parseInt(waterReminderInterval);
-
     if (isNaN(ageNum) || ageNum < 1 || ageNum > 120) {
       Alert.alert('Error', 'Please enter a valid age (1-120)');
       return false;
     }
-
     if (isNaN(heightNum) || heightNum < 50 || heightNum > 300) {
       Alert.alert('Error', 'Please enter a valid height in cm (50-300)');
       return false;
     }
-
     if (isNaN(weightNum) || weightNum < 20 || weightNum > 500) {
       Alert.alert('Error', 'Please enter a valid weight in kg (20-500)');
       return false;
     }
-
     if (isNaN(waterGoalNum) || waterGoalNum < 500 || waterGoalNum > 5000) {
       Alert.alert('Error', 'Please enter a valid water goal (500-5000ml)');
       return false;
     }
-
     if (isNaN(stepsGoalNum) || stepsGoalNum < 1000 || stepsGoalNum > 50000) {
       Alert.alert('Error', 'Please enter a valid steps goal (1000-50000)');
       return false;
     }
-
-    if (isNaN(reminderInterval) || reminderInterval < 1 || reminderInterval > 12) {
-      Alert.alert('Error', 'Please enter a valid reminder interval (1-12 hours)');
+    if (
+      isNaN(reminderInterval) ||
+      reminderInterval < 1 ||
+      reminderInterval > 12
+    ) {
+      Alert.alert(
+        'Error',
+        'Please enter a valid reminder interval (1-12 hours)',
+      );
       return false;
     }
-
     return true;
   };
 
   const saveProfile = async () => {
     if (!validateForm() || !user) return;
-
     try {
       const updatedUser: User = {
         ...user,
@@ -122,7 +128,6 @@ const ProfileScreen: React.FC = () => {
         notificationsEnabled: formData.notificationsEnabled,
         waterReminderInterval: parseInt(formData.waterReminderInterval),
       };
-
       await StorageService.saveUser(updatedUser);
       setUser(updatedUser);
       setEditMode(false);
@@ -166,7 +171,7 @@ const ProfileScreen: React.FC = () => {
             }
           },
         },
-      ]
+      ],
     );
   };
 
@@ -180,12 +185,20 @@ const ProfileScreen: React.FC = () => {
 
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <View style={styles.gradient}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={{ flexGrow: 1 }}
+        >
           {/* Header */}
           <View style={styles.header}>
-            <Text style={styles.title}>👤 Profile</Text>
+            <Text style={styles.title}>💪 Profile</Text>
             <Text style={styles.subtitle}>Manage your wellness profile</Text>
           </View>
 
@@ -193,7 +206,9 @@ const ProfileScreen: React.FC = () => {
           <View style={styles.profileCard}>
             <View style={styles.profileHeader}>
               <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{user.name.charAt(0).toUpperCase()}</Text>
+                <Text style={styles.avatarText}>
+                  {user.name.charAt(0).toUpperCase()}
+                </Text>
               </View>
               <View style={styles.profileInfo}>
                 <Text style={styles.profileName}>{user.name}</Text>
@@ -215,39 +230,36 @@ const ProfileScreen: React.FC = () => {
             {/* Personal Information */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Personal Information</Text>
-              
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Full Name</Text>
                 <TextInput
                   style={[styles.input, !editMode && styles.disabledInput]}
                   value={formData.name}
-                  onChangeText={(value) => handleInputChange('name', value)}
+                  onChangeText={value => handleInputChange('name', value)}
                   editable={editMode}
                   placeholder="Enter your name"
                   placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 />
               </View>
-
               <View style={styles.row}>
                 <View style={[styles.inputContainer, styles.halfWidth]}>
                   <Text style={styles.inputLabel}>Age</Text>
                   <TextInput
                     style={[styles.input, !editMode && styles.disabledInput]}
                     value={formData.age}
-                    onChangeText={(value) => handleInputChange('age', value)}
+                    onChangeText={value => handleInputChange('age', value)}
                     editable={editMode}
                     keyboardType="numeric"
                     placeholder="Age"
                     placeholderTextColor="rgba(255, 255, 255, 0.5)"
                   />
                 </View>
-
                 <View style={[styles.inputContainer, styles.halfWidth]}>
                   <Text style={styles.inputLabel}>Height (cm)</Text>
                   <TextInput
                     style={[styles.input, !editMode && styles.disabledInput]}
                     value={formData.height}
-                    onChangeText={(value) => handleInputChange('height', value)}
+                    onChangeText={value => handleInputChange('height', value)}
                     editable={editMode}
                     keyboardType="numeric"
                     placeholder="Height"
@@ -255,13 +267,12 @@ const ProfileScreen: React.FC = () => {
                   />
                 </View>
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Weight (kg)</Text>
                 <TextInput
                   style={[styles.input, !editMode && styles.disabledInput]}
                   value={formData.weight}
-                  onChangeText={(value) => handleInputChange('weight', value)}
+                  onChangeText={value => handleInputChange('weight', value)}
                   editable={editMode}
                   keyboardType="numeric"
                   placeholder="Weight"
@@ -273,26 +284,24 @@ const ProfileScreen: React.FC = () => {
             {/* Goals */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Daily Goals</Text>
-              
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Water Goal (ml)</Text>
                 <TextInput
                   style={[styles.input, !editMode && styles.disabledInput]}
                   value={formData.waterGoal}
-                  onChangeText={(value) => handleInputChange('waterGoal', value)}
+                  onChangeText={value => handleInputChange('waterGoal', value)}
                   editable={editMode}
                   keyboardType="numeric"
                   placeholder="Water goal"
                   placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 />
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Steps Goal</Text>
                 <TextInput
                   style={[styles.input, !editMode && styles.disabledInput]}
                   value={formData.stepsGoal}
-                  onChangeText={(value) => handleInputChange('stepsGoal', value)}
+                  onChangeText={value => handleInputChange('stepsGoal', value)}
                   editable={editMode}
                   keyboardType="numeric"
                   placeholder="Steps goal"
@@ -304,24 +313,29 @@ const ProfileScreen: React.FC = () => {
             {/* Notifications */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Notifications</Text>
-              
-              <View style={styles.switchContainer}>
+              {/* Row for Water Reminders and Toggle */}
+              <View style={styles.switchRow}>
                 <Text style={styles.switchLabel}>Water Reminders</Text>
                 <Switch
                   value={formData.notificationsEnabled}
-                  onValueChange={(value) => handleInputChange('notificationsEnabled', value)}
+                  onValueChange={value =>
+                    handleInputChange('notificationsEnabled', value)
+                  }
                   disabled={!editMode}
                   trackColor={{ false: '#767577', true: '#81b0ff' }}
-                  thumbColor={formData.notificationsEnabled ? '#f5dd4b' : '#f4f3f4'}
+                  thumbColor={
+                    formData.notificationsEnabled ? '#f5dd4b' : '#f4f3f4'
+                  }
                 />
               </View>
-
               <View style={styles.inputContainer}>
                 <Text style={styles.inputLabel}>Reminder Interval (hours)</Text>
                 <TextInput
                   style={[styles.input, !editMode && styles.disabledInput]}
                   value={formData.waterReminderInterval}
-                  onChangeText={(value) => handleInputChange('waterReminderInterval', value)}
+                  onChangeText={value =>
+                    handleInputChange('waterReminderInterval', value)
+                  }
                   editable={editMode}
                   keyboardType="numeric"
                   placeholder="Reminder interval"
@@ -333,10 +347,16 @@ const ProfileScreen: React.FC = () => {
             {/* Action Buttons */}
             {editMode && (
               <View style={styles.actionButtons}>
-                <TouchableOpacity style={styles.saveButton} onPress={saveProfile}>
+                <TouchableOpacity
+                  style={styles.saveButton}
+                  onPress={saveProfile}
+                >
                   <Text style={styles.saveButtonText}>Save Changes</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.cancelButton} onPress={cancelEdit}>
+                <TouchableOpacity
+                  style={styles.cancelButton}
+                  onPress={cancelEdit}
+                >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
               </View>
@@ -345,7 +365,10 @@ const ProfileScreen: React.FC = () => {
             {/* Danger Zone */}
             <View style={styles.dangerZone}>
               <Text style={styles.dangerTitle}>Danger Zone</Text>
-              <TouchableOpacity style={styles.dangerButton} onPress={clearAllData}>
+              <TouchableOpacity
+                style={styles.dangerButton}
+                onPress={clearAllData}
+              >
                 <Text style={styles.dangerButtonText}>Clear All Data</Text>
               </TouchableOpacity>
             </View>
@@ -376,7 +399,7 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
     paddingTop: 50,
-    paddingBottom: 120, // Increased to accommodate bottom navigation
+    paddingBottom: 120,
   },
   header: {
     paddingHorizontal: 20,
@@ -461,7 +484,7 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 25,
     marginBottom: 20,
-    marginHorizontal: 5,
+    width: '100%',
   },
   sectionTitle: {
     fontSize: 18,
@@ -499,13 +522,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#252525',
     borderColor: '#444',
   },
-  switchContainer: {
+  switchRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    minHeight: 44,
-    paddingHorizontal: 10,
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 0,
   },
   switchLabel: {
     fontSize: 16,
@@ -554,7 +576,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     padding: 25,
     marginBottom: 30,
-    marginHorizontal: 5,
     borderWidth: 1,
     borderColor: '#f44336',
   },
