@@ -12,37 +12,151 @@ import {
 import { User, StepsData } from '../types';
 import { StorageService } from '../services/storage';
 import { getTodayString } from '../utils/dateUtils';
+import {
+  initialize,
+  requestPermission,
+  readRecords,
+  getSdkStatus,
+  SdkAvailabilityStatus,
+} from 'react-native-health-connect';
+import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
+
+const healthKitPermissions = {
+  permissions: {
+    read: [AppleHealthKit.Constants.Permissions.StepCount],
+  },
+} as HealthKitPermissions;
 
 const StepsScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   const [stepsData, setStepsData] = useState<StepsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [healthAvailable, setHealthAvailable] = useState(false);
 
   useEffect(() => {
-    loadData();
-    // In a real app, you would set up pedometer listener here
+    initializeHealth();
   }, []);
 
-  const loadData = async () => {
+  const initializeHealth = async () => {
+    try {
+      if (Platform.OS === 'android') {
+        // ---------- ANDROID: Health Connect ----------
+        const status = await getSdkStatus();
+
+        if (status === SdkAvailabilityStatus.SDK_AVAILABLE) {
+          await initialize();
+          await requestPermission([
+            { accessType: 'read', recordType: 'Steps' },
+          ]);
+          setHealthAvailable(true);
+          await loadStepsFromHealthConnect();
+        } else {
+          console.log('Health Connect not available, using stored data');
+          setHealthAvailable(false);
+          await loadDataFromStorage();
+        }
+      } else if (Platform.OS === 'ios') {
+        // ---------- iOS: HealthKit ----------
+        AppleHealthKit.initHealthKit(healthKitPermissions, async error => {
+          if (error) {
+            console.error('HealthKit init error:', error);
+            setHealthAvailable(false);
+            await loadDataFromStorage();
+            return;
+          }
+
+          setHealthAvailable(true);
+          await loadStepsFromHealthKit();
+        });
+      } else {
+        // Other platforms (web etc.)
+        await loadDataFromStorage();
+      }
+    } catch (error) {
+      console.error('Health init failed:', error);
+      await loadDataFromStorage();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ---------- STORAGE FALLBACK ----------
+  const loadDataFromStorage = async () => {
     try {
       const userData = await StorageService.getUser();
       const today = getTodayString();
       const todaySteps = await StorageService.getStepsData(today);
 
       setUser(userData);
-      setStepsData(todaySteps || {
-        date: today,
-        steps: 0,
-      });
+      setStepsData(todaySteps || { date: today, steps: 0 });
     } catch (error) {
       console.error('Error loading data:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
-  
+  // ---------- ANDROID: HEALTH CONNECT ----------
+  const loadStepsFromHealthConnect = async () => {
+    const userData = await StorageService.getUser();
+    const today = new Date();
+    const start = new Date(today);
+    start.setHours(0, 0, 0, 0);
 
+    try {
+      const result = await readRecords('Steps', {
+        timeRangeFilter: {
+          operator: 'between',
+          startTime: start.toISOString(),
+          endTime: today.toISOString(),
+        },
+      });
+
+      const totalSteps = result.records.reduce(
+        (sum, r) => sum + (r.count || 0),
+        0,
+      );
+
+      const newStepsData: StepsData = {
+        date: getTodayString(),
+        steps: totalSteps,
+      };
+
+      setUser(userData);
+      setStepsData(newStepsData);
+      await StorageService.saveStepsData(newStepsData);
+    } catch (error) {
+      console.error('Error reading steps (Android):', error);
+      await loadDataFromStorage();
+    }
+  };
+
+  // ---------- iOS: HEALTHKIT ----------
+  const loadStepsFromHealthKit = async () => {
+    const userData = await StorageService.getUser();
+    const options = {
+      startDate: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
+      endDate: new Date().toISOString(),
+    };
+
+    AppleHealthKit.getStepCount(options, async (err, results) => {
+      if (err) {
+        console.error('Error reading steps (iOS):', err);
+        await loadDataFromStorage();
+        return;
+      }
+
+      const totalSteps = Math.floor(results.value || 0);
+      const newStepsData: StepsData = {
+        date: getTodayString(),
+        steps: totalSteps,
+      };
+
+      setUser(userData);
+      setStepsData(newStepsData);
+      await StorageService.saveStepsData(newStepsData);
+    });
+  };
+
+  // ---------- MANUAL ADD ----------
   const addSteps = async (stepCount: number) => {
     if (!stepsData || !user) return;
 
@@ -55,61 +169,72 @@ const StepsScreen: React.FC = () => {
       await StorageService.saveStepsData(newStepsData);
       setStepsData(newStepsData);
 
-      // Check if goal is reached
-      if (newStepsData.steps >= user.stepsGoal && stepsData.steps < user.stepsGoal) {
-        Alert.alert('🎉 Congratulations!', 'You\'ve reached your daily steps goal!');
+      if (
+        newStepsData.steps >= user.stepsGoal &&
+        stepsData.steps < user.stepsGoal
+      ) {
+        Alert.alert('🎉 Congratulations!', "You've reached your daily goal!");
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to save steps data');
     }
   };
 
+  // ---------- METRICS ----------
   const getProgress = () => {
     if (!user || !stepsData) return 0;
     return Math.min((stepsData.steps / user.stepsGoal) * 100, 100);
   };
 
-  const getCaloriesBurned = () => {
-    if (!stepsData) return 0;
-    // Rough estimate: 0.04 calories per step
-    return Math.round(stepsData.steps * 0.04);
-  };
+  const getCaloriesBurned = () =>
+    stepsData ? Math.round(stepsData.steps * 0.04) : 0;
 
-  const getDistance = () => {
-    if (!stepsData) return 0;
-    // Rough estimate: 0.8 meters per step
-    return (stepsData.steps * 0.0008).toFixed(2);
-  };
+  const getDistance = () =>
+    stepsData ? (stepsData.steps * 0.0008).toFixed(2) : '0.00';
 
   if (loading || !user || !stepsData) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading...</Text>
+        <Text style={styles.loadingText}>Loading health data...</Text>
       </View>
     );
   }
 
+  // ---------- UI ----------
   return (
     <View style={styles.container}>
-      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <View style={styles.gradient}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header */}
+        <ScrollView
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <Text style={styles.title}>👟 Steps Tracking</Text>
-            <Text style={styles.subtitle}>Every step counts towards your health</Text>
+            <Text style={styles.subtitle}>
+              {healthAvailable
+                ? 'Synced with Health Connect / Apple Health'
+                : 'Using local step data'}
+            </Text>
           </View>
 
-          {/* Progress Circle */}
           <View style={styles.progressSection}>
             <View style={styles.progressCircle}>
               <View style={styles.progressInner}>
-                <Text style={styles.progressText}>{stepsData.steps.toLocaleString()}</Text>
+                <Text style={styles.progressText}>
+                  {stepsData.steps.toLocaleString()}
+                </Text>
                 <Text style={styles.progressLabel}>Steps</Text>
-                <Text style={styles.progressPercentage}>{Math.round(getProgress())}%</Text>
+                <Text style={styles.progressPercentage}>
+                  {Math.round(getProgress())}%
+                </Text>
               </View>
             </View>
-            
+
             <View style={styles.statsContainer}>
               <View style={styles.statBox}>
                 <Text style={styles.statValue}>{getCaloriesBurned()}</Text>
@@ -120,92 +245,40 @@ const StepsScreen: React.FC = () => {
                 <Text style={styles.statLabel}>Distance</Text>
               </View>
               <View style={styles.statBox}>
-                <Text style={styles.statValue}>{user.stepsGoal.toLocaleString()}</Text>
+                <Text style={styles.statValue}>
+                  {user.stepsGoal.toLocaleString()}
+                </Text>
                 <Text style={styles.statLabel}>Goal</Text>
               </View>
             </View>
           </View>
 
-          {/* Quick Add Steps */}
           <View style={styles.quickAddSection}>
             <Text style={styles.sectionTitle}>Quick Add Steps</Text>
             <View style={styles.quickAddButtons}>
-              <TouchableOpacity
-                style={styles.quickAddButton}
-                onPress={() => addSteps(100)}
-              >
-                <Text style={styles.quickAddText}>+100</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickAddButton}
-                onPress={() => addSteps(500)}
-              >
-                <Text style={styles.quickAddText}>+500</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.quickAddButton}
-                onPress={() => addSteps(1000)}
-              >
-                <Text style={styles.quickAddText}>+1000</Text>
-              </TouchableOpacity>
+              {[100, 500, 1000].map(v => (
+                <TouchableOpacity
+                  key={v}
+                  style={styles.quickAddButton}
+                  onPress={() => addSteps(v)}
+                >
+                  <Text style={styles.quickAddText}>+{v}</Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
 
-          {/* Progress Bar */}
           <View style={styles.progressBarSection}>
             <View style={styles.progressBarContainer}>
-              <View 
-                style={[
-                  styles.progressBarFill, 
-                  { width: `${getProgress()}%` }
-                ]} 
+              <View
+                style={[styles.progressBarFill, { width: `${getProgress()}%` }]}
               />
             </View>
             <Text style={styles.progressBarText}>
-              {Math.max(0, user.stepsGoal - stepsData.steps).toLocaleString()} steps to goal
+              {Math.max(0, user.stepsGoal - stepsData.steps).toLocaleString()}{' '}
+              steps to goal
             </Text>
           </View>
-
-          {/* Activity Levels */}
-          <View style={styles.activitySection}>
-            <Text style={styles.sectionTitle}>Activity Level</Text>
-            <View style={styles.activityLevels}>
-              <View style={[
-                styles.activityLevel,
-                stepsData.steps >= 2500 && styles.activeLevel
-              ]}>
-                <Text style={styles.activityEmoji}>👣</Text>
-                <Text style={styles.activityText}>Light</Text>
-                <Text style={styles.activitySteps}>2,500+</Text>
-              </View>
-              <View style={[
-                styles.activityLevel,
-                stepsData.steps >= 5000 && styles.activeLevel
-              ]}>
-                <Text style={styles.activityEmoji}>👣</Text>
-                <Text style={styles.activityText}>Moderate</Text>
-                <Text style={styles.activitySteps}>5,000+</Text>
-              </View>
-              <View style={[
-                styles.activityLevel,
-                stepsData.steps >= 10000 && styles.activeLevel
-              ]}>
-                <Text style={styles.activityEmoji}>🏃</Text>
-                <Text style={styles.activityText}>Active</Text>
-                <Text style={styles.activitySteps}>10,000+</Text>
-              </View>
-              <View style={[
-                styles.activityLevel,
-                stepsData.steps >= 15000 && styles.activeLevel
-              ]}>
-                <Text style={styles.activityEmoji}>🏃</Text>
-                <Text style={styles.activityText}>Very Active</Text>
-                <Text style={styles.activitySteps}>15,000+</Text>
-              </View>
-            </View>
-          </View>
-
-          
         </ScrollView>
       </View>
     </View>
@@ -213,41 +286,21 @@ const StepsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    fontSize: 18,
-    color: '#666',
-  },
-  scrollView: {
-    flex: 1,
-    paddingTop: 50,
-  },
+  container: { flex: 1 },
+  gradient: { flex: 1, backgroundColor: '#121212' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { fontSize: 18, color: '#666' },
+  scrollView: { flex: 1, paddingTop: 50 },
   header: {
     paddingHorizontal: 20,
     paddingTop: 20,
     paddingBottom: 30,
     alignItems: 'center',
   },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#fff',
-    marginBottom: 8,
-  },
+  title: { fontSize: 28, fontWeight: 'bold', color: '#fff', marginBottom: 8 },
   subtitle: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255,255,255,0.7)',
     textAlign: 'center',
   },
   progressSection: {
@@ -266,9 +319,7 @@ const styles = StyleSheet.create({
     borderWidth: 8,
     borderColor: '#444',
   },
-  progressInner: {
-    alignItems: 'center',
-  },
+  progressInner: { alignItems: 'center' },
   progressText: {
     fontSize: 28,
     fontWeight: 'bold',
@@ -277,13 +328,10 @@ const styles = StyleSheet.create({
   },
   progressLabel: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.7)',
+    color: 'rgba(255,255,255,0.7)',
     marginBottom: 5,
   },
-  progressPercentage: {
-    fontSize: 14,
-    color: 'rgba(255, 255, 255, 0.6)',
-  },
+  progressPercentage: { fontSize: 14, color: 'rgba(255,255,255,0.6)' },
   statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
@@ -303,114 +351,40 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginBottom: 5,
   },
-  statLabel: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  quickAddSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
+  statLabel: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+  quickAddSection: { paddingHorizontal: 20, marginBottom: 30 },
   sectionTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#fff',
     marginBottom: 15,
   },
-  quickAddButtons: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
+  quickAddButtons: { flexDirection: 'row', justifyContent: 'space-around' },
   quickAddButton: {
     backgroundColor: '#2d2d2d',
     borderRadius: 12,
     paddingVertical: 15,
     paddingHorizontal: 25,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
   },
-  quickAddText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#fff',
-  },
-  progressBarSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
+  quickAddText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
+  progressBarSection: { paddingHorizontal: 20, marginBottom: 30 },
   progressBarContainer: {
     height: 12,
     backgroundColor: '#333',
     borderRadius: 6,
     marginBottom: 10,
   },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: '#fff',
-    borderRadius: 6,
-  },
+  progressBarFill: { height: '100%', backgroundColor: '#fff', borderRadius: 6 },
   progressBarText: {
     fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
+    color: 'rgba(255,255,255,0.9)',
     textAlign: 'center',
     fontWeight: '600',
-  },
-  activitySection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  activityLevels: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  activityLevel: {
-    alignItems: 'center',
-    backgroundColor: '#2d2d2d',
-    borderRadius: 12,
-    paddingVertical: 15,
-    paddingHorizontal: 10,
-    flex: 1,
-    marginHorizontal: 2,
-  },
-  activeLevel: {
-    backgroundColor: '#444',
-  },
-  activityEmoji: {
-    fontSize: 24,
-    marginBottom: 8,
-  },
-  activityText: {
-    fontSize: 12,
-    color: '#fff',
-    fontWeight: '600',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  activitySteps: {
-    fontSize: 10,
-    color: 'rgba(255, 255, 255, 0.7)',
-    textAlign: 'center',
-  },
-  tipsSection: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
-  },
-  tipsList: {
-    backgroundColor: '#2d2d2d',
-    borderRadius: 15,
-    padding: 20,
-  },
-  tipItem: {
-    fontSize: 16,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: 8,
-    lineHeight: 24,
   },
 });
 
