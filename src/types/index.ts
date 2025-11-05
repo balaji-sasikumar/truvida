@@ -35,6 +35,8 @@ export type RootStackParamList = {
   Login: undefined;
   Register: undefined;
   MainTabs: undefined;
+  JoinClan: undefined;
+  Leaderboard: undefined;
 };
 
 export type TabParamList = {

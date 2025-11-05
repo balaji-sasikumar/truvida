@@ -12,20 +12,7 @@ import {
 import { User, StepsData } from '../types';
 import { StorageService } from '../services/storage';
 import { getTodayString } from '../utils/dateUtils';
-import {
-  initialize,
-  requestPermission,
-  readRecords,
-  getSdkStatus,
-  SdkAvailabilityStatus,
-} from 'react-native-health-connect';
-import AppleHealthKit, { HealthKitPermissions } from 'react-native-health';
-
-const healthKitPermissions = {
-  permissions: {
-    read: [AppleHealthKit.Constants.Permissions.StepCount],
-  },
-} as HealthKitPermissions;
+import GoogleFit, { Scopes } from 'react-native-google-fit';
 
 const StepsScreen: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -39,49 +26,39 @@ const StepsScreen: React.FC = () => {
 
   const initializeHealth = async () => {
     try {
-      if (Platform.OS === 'android') {
-        // ---------- ANDROID: Health Connect ----------
-        const status = await getSdkStatus();
+      setLoading(true);
 
-        if (status === SdkAvailabilityStatus.SDK_AVAILABLE) {
-          await initialize();
-          await requestPermission([
-            { accessType: 'read', recordType: 'Steps' },
-          ]);
+      if (Platform.OS === 'android') {
+        // Configure Google Fit for Android
+        const authResult = await GoogleFit.authorize({
+          scopes: [Scopes.FITNESS_ACTIVITY_READ, Scopes.FITNESS_ACTIVITY_WRITE],
+        });
+
+        if (authResult.success) {
           setHealthAvailable(true);
-          await loadStepsFromHealthConnect();
+          await loadStepsFromGoogleFit();
         } else {
-          console.log('Health Connect not available, using stored data');
-          setHealthAvailable(false);
-          await loadDataFromStorage();
+          console.log('Google Fit authorization failed:', authResult.message);
+          await loadFromStorage();
         }
       } else if (Platform.OS === 'ios') {
-        // ---------- iOS: HealthKit ----------
-        AppleHealthKit.initHealthKit(healthKitPermissions, async error => {
-          if (error) {
-            console.error('HealthKit init error:', error);
-            setHealthAvailable(false);
-            await loadDataFromStorage();
-            return;
-          }
-
-          setHealthAvailable(true);
-          await loadStepsFromHealthKit();
-        });
+        // For iOS, we'll use HealthKit (which would require another library)
+        // For now, we'll use storage as fallback for iOS
+        console.log('iOS HealthKit integration would go here');
+        await loadFromStorage();
       } else {
-        // Other platforms (web etc.)
-        await loadDataFromStorage();
+        // Other platforms use storage fallback
+        await loadFromStorage();
       }
     } catch (error) {
-      console.error('Health init failed:', error);
-      await loadDataFromStorage();
+      console.error('Health initialization error:', error);
+      await loadFromStorage();
     } finally {
       setLoading(false);
     }
   };
 
-  // ---------- STORAGE FALLBACK ----------
-  const loadDataFromStorage = async () => {
+  const loadFromStorage = async () => {
     try {
       const userData = await StorageService.getUser();
       const today = getTodayString();
@@ -90,61 +67,47 @@ const StepsScreen: React.FC = () => {
       setUser(userData);
       setStepsData(todaySteps || { date: today, steps: 0 });
     } catch (error) {
-      console.error('Error loading data:', error);
+      console.error('Error loading data from storage:', error);
+      // Set default values if there's an error
+      setStepsData({ date: getTodayString(), steps: 0 });
     }
   };
 
-  // ---------- ANDROID: HEALTH CONNECT ----------
-  const loadStepsFromHealthConnect = async () => {
-    const userData = await StorageService.getUser();
-    const today = new Date();
-    const start = new Date(today);
-    start.setHours(0, 0, 0, 0);
-
+  const loadStepsFromGoogleFit = async () => {
     try {
-      const result = await readRecords('Steps', {
-        timeRangeFilter: {
-          operator: 'between',
-          startTime: start.toISOString(),
-          endTime: today.toISOString(),
-        },
-      });
+      const userData = await StorageService.getUser();
+      const startDate = new Date();
+      startDate.setHours(0, 0, 0, 0); // Start of today
+      const endDate = new Date(); // Current time
 
-      const totalSteps = result.records.reduce(
-        (sum, r) => sum + (r.count || 0),
-        0,
-      );
-
-      const newStepsData: StepsData = {
-        date: getTodayString(),
-        steps: totalSteps,
+      // Get steps from Google Fit for today
+      const options = {
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+        bucketUnit: 'DAY',
+        bucketInterval: 1,
       };
 
-      setUser(userData);
-      setStepsData(newStepsData);
-      await StorageService.saveStepsData(newStepsData);
-    } catch (error) {
-      console.error('Error reading steps (Android):', error);
-      await loadDataFromStorage();
-    }
-  };
+      const stepsResponse = await GoogleFit.getDailyStepCountSamples(options);
 
-  // ---------- iOS: HEALTHKIT ----------
-  const loadStepsFromHealthKit = async () => {
-    const userData = await StorageService.getUser();
-    const options = {
-      startDate: new Date(new Date().setHours(0, 0, 0, 0)).toISOString(),
-      endDate: new Date().toISOString(),
-    };
+      let totalSteps = 0;
+      if (stepsResponse && stepsResponse.length > 0) {
+        // Get today's step count from the first bucket
+        const todayBucket = stepsResponse[0];
+        if (todayBucket.buckets && todayBucket.buckets.length > 0) {
+          const stepsBuckets = todayBucket.buckets.filter(
+            bucket => bucket.dataSet && bucket.dataSet.length > 0,
+          );
 
-    AppleHealthKit.getStepCount(options, async (err, results) => {
-      if (err) {
-        console.error('Error reading steps (iOS):', err);
-        await loadDataFromStorage();
-        return;
+          if (stepsBuckets.length > 0) {
+            const stepsBucket = stepsBuckets[0];
+            stepsBucket.dataSet.forEach(dataSet => {
+              totalSteps += dataSet.steps || 0;
+            });
+          }
+        }
       }
 
-      const totalSteps = Math.floor(results.value || 0);
       const newStepsData: StepsData = {
         date: getTodayString(),
         steps: totalSteps,
@@ -152,11 +115,16 @@ const StepsScreen: React.FC = () => {
 
       setUser(userData);
       setStepsData(newStepsData);
+
+      // Save to storage as backup
       await StorageService.saveStepsData(newStepsData);
-    });
+    } catch (error) {
+      console.error('Error reading steps from Google Fit:', error);
+      // Fallback to storage data if Google Fit fails
+      await loadFromStorage();
+    }
   };
 
-  // ---------- MANUAL ADD ----------
   const addSteps = async (stepCount: number) => {
     if (!stepsData || !user) return;
 
@@ -169,6 +137,11 @@ const StepsScreen: React.FC = () => {
       await StorageService.saveStepsData(newStepsData);
       setStepsData(newStepsData);
 
+      // Refresh Google Fit data if available
+      if (Platform.OS === 'android' && healthAvailable) {
+        await loadStepsFromGoogleFit();
+      }
+
       if (
         newStepsData.steps >= user.stepsGoal &&
         stepsData.steps < user.stepsGoal
@@ -180,7 +153,7 @@ const StepsScreen: React.FC = () => {
     }
   };
 
-  // ---------- METRICS ----------
+  // Metrics calculations
   const getProgress = () => {
     if (!user || !stepsData) return 0;
     return Math.min((stepsData.steps / user.stepsGoal) * 100, 100);
@@ -195,12 +168,18 @@ const StepsScreen: React.FC = () => {
   if (loading || !user || !stepsData) {
     return (
       <View style={styles.loadingContainer}>
-        <Text style={styles.loadingText}>Loading health data...</Text>
+        <Text style={styles.loadingText}>
+          {Platform.OS === 'android'
+            ? healthAvailable
+              ? 'Syncing with Google Fit...'
+              : 'Loading step data...'
+            : 'Loading...'}
+        </Text>
       </View>
     );
   }
 
-  // ---------- UI ----------
+  // UI for the Steps Screen
   return (
     <View style={styles.container}>
       <StatusBar
@@ -216,8 +195,8 @@ const StepsScreen: React.FC = () => {
           <View style={styles.header}>
             <Text style={styles.title}>👟 Steps Tracking</Text>
             <Text style={styles.subtitle}>
-              {healthAvailable
-                ? 'Synced with Health Connect / Apple Health'
+              {Platform.OS === 'android' && healthAvailable
+                ? 'Synced with Google Fit'
                 : 'Using local step data'}
             </Text>
           </View>

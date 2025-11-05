@@ -10,11 +10,16 @@ import {
   Switch,
   StatusBar,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 
-import { User } from '../types';
+import { User, RootStackParamList } from '../types';
 import { StorageService } from '../services/storage';
 
+type ProfileScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Profile'>;
+
 const ProfileScreen: React.FC = () => {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const [user, setUser] = useState<User | null>(null);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({
@@ -362,6 +367,17 @@ const ProfileScreen: React.FC = () => {
               </View>
             )}
 
+            {/* Community Section */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Community</Text>
+              <TouchableOpacity
+                style={styles.clanButton}
+                onPress={() => navigation.navigate('JoinClan')}
+              >
+                <Text style={styles.clanButtonText}>👥 Join a Clan</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Danger Zone */}
             <View style={styles.dangerZone}>
               <Text style={styles.dangerTitle}>Danger Zone</Text>
@@ -592,6 +608,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   dangerButtonText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#fff',
+  },
+  clanButton: {
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(102, 126, 234, 0.5)',
+    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+    marginBottom: 15,
+  },
+  clanButtonText: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#fff',
