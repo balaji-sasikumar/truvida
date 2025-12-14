@@ -1,26 +1,41 @@
+// Top-level build file for the Android project
 buildscript {
     ext {
+        // 🔧 Define Android build versions
         buildToolsVersion = "36.0.0"
         minSdkVersion = 26
         compileSdkVersion = 36
         targetSdkVersion = 36
         ndkVersion = "27.1.12297006"
-        kotlinVersion = "2.1.20"
+
+        // 🧠 Kotlin version (compatible with Gradle 8+ and React Native 0.75+)
+        kotlinVersion = "2.0.21"
     }
+
     repositories {
         google()
         mavenCentral()
     }
+
     dependencies {
-        classpath("com.android.tools.build:gradle")
+        // Android Gradle Plugin
+        classpath("com.android.tools.build:gradle:8.7.2")
+
+        // React Native Gradle Plugin
         classpath("com.facebook.react:react-native-gradle-plugin")
-        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin")
+
+        // Kotlin Gradle Plugin
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     }
 }
+
+// ✅ Use new Gradle plugin setup for React Native 0.71+
 allprojects {
-  repositories {
-    google()
-    mavenCentral()
-  }
+    repositories {
+        google()
+        mavenCentral()
+    }
 }
+
+// Apply React Native root project plugin
 apply plugin: "com.facebook.react.rootproject"
